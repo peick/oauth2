@@ -36,7 +36,7 @@ type DeviceAuthResponse struct {
 	// Expiry is when the device code and user code expire
 	Expiry time.Time `json:"expires_in,omitempty"`
 	// Interval is the duration in seconds that Poll should wait between requests
-	Interval int64 `json:"interval,omitempty"`
+	Interval json.Number `json:"interval,omitempty"`
 }
 
 func (d DeviceAuthResponse) MarshalJSON() ([]byte, error) {
@@ -45,20 +45,22 @@ func (d DeviceAuthResponse) MarshalJSON() ([]byte, error) {
 	if !d.Expiry.IsZero() {
 		expiresIn = int64(time.Until(d.Expiry).Seconds())
 	}
-	return json.Marshal(&struct {
-		ExpiresIn int64 `json:"expires_in,omitempty"`
-		*Alias
-	}{
-		ExpiresIn: expiresIn,
-		Alias:     (*Alias)(&d),
-	})
+	return json.Marshal(
+		&struct {
+			ExpiresIn int64 `json:"expires_in,omitempty"`
+			*Alias
+		}{
+			ExpiresIn: expiresIn,
+			Alias:     (*Alias)(&d),
+		},
+	)
 
 }
 
 func (c *DeviceAuthResponse) UnmarshalJSON(data []byte) error {
 	type Alias DeviceAuthResponse
 	aux := &struct {
-		ExpiresIn int64 `json:"expires_in"`
+		ExpiresIn internal.JsonInt `json:"expires_in"`
 		// workaround misspelling of verification_uri
 		VerificationURL string `json:"verification_url"`
 		*Alias
@@ -159,7 +161,7 @@ func (c *Config) DeviceAccessToken(ctx context.Context, da *DeviceAuthResponse, 
 
 	// "If no value is provided, clients MUST use 5 as the default."
 	// https://datatracker.ietf.org/doc/html/rfc8628#section-3.2
-	interval := da.Interval
+	interval, _ := da.Interval.Int64()
 	if interval == 0 {
 		interval = 5
 	}

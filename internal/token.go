@@ -64,10 +64,10 @@ type Token struct {
 // providers returning a token or error in JSON form.
 // https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
 type tokenJSON struct {
-	AccessToken  string         `json:"access_token"`
-	TokenType    string         `json:"token_type"`
-	RefreshToken string         `json:"refresh_token"`
-	ExpiresIn    expirationTime `json:"expires_in"` // at least PayPal returns string, while most return number
+	AccessToken  string  `json:"access_token"`
+	TokenType    string  `json:"token_type"`
+	RefreshToken string  `json:"refresh_token"`
+	ExpiresIn    JsonInt `json:"expires_in"` // at least PayPal returns string, while most return number
 	// error fields
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
 	ErrorCode        string `json:"error"`
@@ -82,9 +82,9 @@ func (e *tokenJSON) expiry() (t time.Time) {
 	return
 }
 
-type expirationTime int32
+type JsonInt int
 
-func (e *expirationTime) UnmarshalJSON(b []byte) error {
+func (e *JsonInt) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 || string(b) == "null" {
 		return nil
 	}
@@ -97,10 +97,10 @@ func (e *expirationTime) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	if i > math.MaxInt32 {
-		i = math.MaxInt32
+	if i > math.MaxInt64 {
+		i = math.MaxInt64
 	}
-	*e = expirationTime(i)
+	*e = JsonInt(i)
 	return nil
 }
 

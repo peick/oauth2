@@ -6,6 +6,7 @@ package oauth2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -54,7 +55,7 @@ type Token struct {
 	// relative to an unknown time base approximately around "now".
 	// It is the application's responsibility to populate
 	// `Expiry` from `ExpiresIn` when required.
-	ExpiresIn int64 `json:"expires_in,omitempty"`
+	ExpiresIn json.Number `json:"expires_in,omitempty"`
 
 	// raw optionally contains extra metadata from the server
 	// when updating a token.
@@ -163,7 +164,7 @@ func tokenFromInternal(t *internal.Token) *Token {
 		TokenType:    t.TokenType,
 		RefreshToken: t.RefreshToken,
 		Expiry:       t.Expiry,
-		ExpiresIn:    t.ExpiresIn,
+		ExpiresIn:    json.Number(fmt.Sprintf("%d", t.ExpiresIn)),
 		raw:          t.Raw,
 	}
 }
@@ -172,7 +173,10 @@ func tokenFromInternal(t *internal.Token) *Token {
 // This token is then mapped from *internal.Token into an *oauth2.Token which is returned along
 // with an error..
 func retrieveToken(ctx context.Context, c *Config, v url.Values) (*Token, error) {
-	tk, err := internal.RetrieveToken(ctx, c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle), c.authStyleCache.Get())
+	tk, err := internal.RetrieveToken(
+		ctx, c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v, internal.AuthStyle(c.Endpoint.AuthStyle),
+		c.authStyleCache.Get(),
+	)
 	if err != nil {
 		if rErr, ok := err.(*internal.RetrieveError); ok {
 			return nil, (*RetrieveError)(rErr)
