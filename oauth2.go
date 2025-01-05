@@ -278,11 +278,16 @@ func (tf *tokenRefresher) Token() (*Token, error) {
 		return nil, errors.New("oauth2: token expired and refresh token is not set")
 	}
 
-	tk, err := retrieveToken(tf.ctx, tf.conf, url.Values{
+	v := url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {tf.refreshToken},
 		"client_id":     {tf.conf.ClientID},
-	})
+	}
+	// as of https://datatracker.ietf.org/doc/html/rfc6749#section-4.4.2, scopes is optional
+	if len(tf.conf.Scopes) > 0 {
+		v.Set("scope", strings.Join(tf.conf.Scopes, " "))
+	}
+	tk, err := retrieveToken(tf.ctx, tf.conf, v)
 
 	if err != nil {
 		return nil, err
